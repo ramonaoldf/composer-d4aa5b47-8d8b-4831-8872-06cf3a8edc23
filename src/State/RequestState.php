@@ -21,6 +21,9 @@ final class RequestState
 {
     public int $v = 1;
 
+    /**
+     * @var 'request'
+     */
     public string $source = 'request';
 
     /**
@@ -65,6 +68,8 @@ final class RequestState
         public RecordsBuffer $records = new RecordsBuffer,
         public string $phpVersion = PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION.'.'.PHP_RELEASE_VERSION,
         public string $laravelVersion = Application::VERSION,
+        public string $executionPreview = '',
+        public string $exceptionPreview = '',
     ) {
         $this->deploy = Str::tinyText($this->deploy);
         $this->server = Str::tinyText($this->server);
@@ -81,6 +86,14 @@ final class RequestState
     public function setId(string $id): void
     {
         $this->id = $id;
+    }
+
+    /**
+     * @return LazyValue<string>
+     */
+    public function executionPreview(): LazyValue
+    {
+        return new LazyValue(fn () => $this->executionPreview);
     }
 
     public function peakMemory(): int

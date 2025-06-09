@@ -4,6 +4,7 @@ namespace Laravel\Nightwatch\Records;
 
 use Laravel\Nightwatch\ExecutionStage;
 use Laravel\Nightwatch\LazyValue;
+use Laravel\Nightwatch\Types\Str;
 
 /**
  * @internal
@@ -17,6 +18,7 @@ final class Mail
     /**
      * @param  string|LazyValue<string>  $trace_id
      * @param  LazyValue<string>  $execution_id
+     * @param  LazyValue<string>  $execution_preview
      * @param  string|LazyValue<string>  $user
      */
     public function __construct(
@@ -27,6 +29,7 @@ final class Mail
         public string|LazyValue $trace_id,
         public string $execution_source,
         public LazyValue $execution_id,
+        public LazyValue $execution_preview,
         public ExecutionStage $execution_stage,
         public string|LazyValue $user,
         // --- //
@@ -40,6 +43,8 @@ final class Mail
         public int $duration,
         public bool $failed,
     ) {
-        //
+        $this->mailer = Str::tinyText($this->mailer);
+        $this->class = Str::tinyText($this->class);
+        $this->subject = Str::tinyText($this->subject);
     }
 }

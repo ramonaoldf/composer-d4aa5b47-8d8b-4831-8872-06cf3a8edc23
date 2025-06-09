@@ -5,6 +5,8 @@ namespace Laravel\Nightwatch\Records;
 use Laravel\Nightwatch\LazyValue;
 use Laravel\Nightwatch\Types\Str;
 
+use function array_map;
+
 /**
  * @internal
  */
@@ -59,11 +61,15 @@ final class Request
         public int $cache_events,
         public int $hydrated_models,
         public int $peak_memory_usage,
+        public string $exception_preview,
     ) {
+        $this->method = Str::tinyText($this->method);
         $this->url = Str::text($this->url);
         $this->route_name = Str::tinyText($this->route_name);
+        $this->route_methods = array_map(static fn ($method) => Str::tinyText($method), $this->route_methods);
         $this->route_domain = Str::tinyText($this->route_domain);
         $this->route_path = Str::text($this->route_path);
         $this->route_action = Str::text($this->route_action);
+        $this->exception_preview = Str::tinyText($this->exception_preview);
     }
 }

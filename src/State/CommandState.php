@@ -21,6 +21,9 @@ final class CommandState
 {
     public int $v = 1;
 
+    /**
+     * @var 'command'|'job'|'schedule'
+     */
     public string $source = 'command';
 
     /**
@@ -64,6 +67,8 @@ final class CommandState
         public ?Artisan $artisan = null,
         public ?string $name = null,
         public NullUserProvider $user = new NullUserProvider,
+        public string $executionPreview = '',
+        public string $exceptionPreview = '',
     ) {
         $this->deploy = Str::tinyText($this->deploy);
         $this->server = Str::tinyText($this->server);
@@ -80,6 +85,14 @@ final class CommandState
     public function setId(string $id): void
     {
         $this->id = $id;
+    }
+
+    /**
+     * @return LazyValue<string>
+     */
+    public function executionPreview(): LazyValue
+    {
+        return new LazyValue(fn () => $this->executionPreview);
     }
 
     public function peakMemory(): int
