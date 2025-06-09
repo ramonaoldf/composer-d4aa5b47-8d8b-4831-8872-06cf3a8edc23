@@ -4,12 +4,12 @@ namespace Laravel\Nightwatch\Hooks;
 
 use Illuminate\Foundation\Events\Terminating;
 use Illuminate\Routing\Events\RouteMatched;
+use Laravel\Nightwatch\Compatibility;
 use Laravel\Nightwatch\Core;
 use Laravel\Nightwatch\State\RequestState;
 use Throwable;
 
 use function array_unshift;
-use function class_exists;
 
 /**
  * @internal
@@ -40,7 +40,7 @@ final class RouteMatchedListener
              */
             $middleware[] = RouteMiddleware::class;
 
-            if (! class_exists(Terminating::class)) {
+            if (! Compatibility::$terminatingEventExists) {
                 /**
                  * @see \Laravel\Nightwatch\ExecutionStage::Terminating
                  *
