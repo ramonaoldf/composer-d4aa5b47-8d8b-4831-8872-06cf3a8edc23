@@ -2,7 +2,8 @@
 
 namespace Laravel\Nightwatch;
 
-use Laravel\Nightwatch\Contracts\LocalIngest;
+use Laravel\Nightwatch\Contracts\Ingest as IngestContract;
+use Laravel\Nightwatch\Records\Record;
 use RuntimeException;
 use Throwable;
 
@@ -21,7 +22,7 @@ use function substr;
 /**
  * @internal
  */
-final class Ingest implements LocalIngest
+final class Ingest implements IngestContract
 {
     private string $transmitTo;
 
@@ -37,7 +38,9 @@ final class Ingest implements LocalIngest
         string $transmitTo,
         private float $connectionTimeout,
         float $timeout,
+        private int $eventBuffer,
         public $streamFactory,
+        public RecordsBuffer $buffer,
     ) {
         $this->transmitTo = "tcp://{$transmitTo}";
 
@@ -47,22 +50,36 @@ final class Ingest implements LocalIngest
         ];
     }
 
-    public function write(Payload $payload): void
+    public function write(Record $record): void
+    {
+        $this->buffer->write($record);
+
+        if ($this->buffer->count() >= $this->eventBuffer) {
+            $this->digest();
+        }
+    }
+
+    public function flush(): void
+    {
+        $this->buffer->flush();
+    }
+
+    public function ping(): void
+    {
+        $this->transmit(Payload::text('PING'));
+    }
+
+    public function digest(): void
+    {
+        $this->transmit($this->buffer->pull());
+    }
+
+    private function transmit(Payload $payload): void
     {
         if ($payload->isEmpty()) {
             return;
         }
 
-        $this->ingest($payload);
-    }
-
-    public function ping(): void
-    {
-        $this->ingest(Payload::text('PING'));
-    }
-
-    private function ingest(Payload $payload): void
-    {
         $stream = $this->createStream();
 
         $this->sendPayload($stream, $payload);
