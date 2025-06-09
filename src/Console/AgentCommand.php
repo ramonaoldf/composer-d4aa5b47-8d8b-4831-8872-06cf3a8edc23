@@ -23,12 +23,12 @@ use function max;
  * @internal
  */
 #[AsCommand(name: 'nightwatch:agent')]
-final class Agent extends Command
+final class AgentCommand extends Command
 {
     /**
      * @var string
      */
-    protected $signature = 'nightwatch:agent';
+    protected $signature = 'nightwatch:agent {--base-url=}';
 
     /**
      * @var string
