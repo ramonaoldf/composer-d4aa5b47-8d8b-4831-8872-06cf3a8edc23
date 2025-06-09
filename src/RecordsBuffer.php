@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\Nightwatch\Buffers;
+namespace Laravel\Nightwatch;
 
 use Laravel\Nightwatch\Records\CacheEvent;
 use Laravel\Nightwatch\Records\Command;
