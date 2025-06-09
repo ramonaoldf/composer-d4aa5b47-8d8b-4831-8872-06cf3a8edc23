@@ -38,7 +38,7 @@ use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Support\Env;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
-use Laravel\Nightwatch\Console\Agent;
+use Laravel\Nightwatch\Console\AgentCommand;
 use Laravel\Nightwatch\Contracts\LocalIngest;
 use Laravel\Nightwatch\Factories\AgentFactory;
 use Laravel\Nightwatch\Factories\Logger;
@@ -98,7 +98,6 @@ final class NightwatchServiceProvider extends ServiceProvider
      * @var array{
      *     enabled?: bool,
      *     token?: string,
-     *     auth_url?: string,
      *     deployment?: string,
      *     server?: string,
      *     local_ingest?: string,
@@ -188,7 +187,7 @@ final class NightwatchServiceProvider extends ServiceProvider
 
     private function registerAgent(): void
     {
-        $this->app->singleton(Agent::class, (new AgentFactory($this->nightwatchConfig))(...));
+        $this->app->singleton(AgentCommand::class, (new AgentFactory($this->nightwatchConfig))(...));
     }
 
     private function registerMiddleware(): void
@@ -233,7 +232,7 @@ final class NightwatchServiceProvider extends ServiceProvider
     private function registerCommands(): void
     {
         $this->commands([
-            Console\Agent::class,
+            Console\AgentCommand::class,
         ]);
     }
 
