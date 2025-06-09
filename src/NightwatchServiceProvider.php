@@ -29,9 +29,12 @@ use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Http\Client\Factory as Http;
 use Illuminate\Log\Context\Repository as ContextRepository;
 use Illuminate\Log\LogManager;
+use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Queue\Events\JobQueued;
+use Illuminate\Queue\Events\JobQueueing;
 use Illuminate\Routing\Events\PreparingResponse;
 use Illuminate\Routing\Events\ResponsePrepared;
 use Illuminate\Routing\Events\RouteMatched;
@@ -52,12 +55,12 @@ use Laravel\Nightwatch\Hooks\CommandStartingListener;
 use Laravel\Nightwatch\Hooks\ExceptionHandlerResolvedHandler;
 use Laravel\Nightwatch\Hooks\HttpClientFactoryResolvedHandler;
 use Laravel\Nightwatch\Hooks\HttpKernelResolvedHandler;
-use Laravel\Nightwatch\Hooks\JobQueuedListener;
 use Laravel\Nightwatch\Hooks\LogoutListener;
-use Laravel\Nightwatch\Hooks\MessageSentListener;
-use Laravel\Nightwatch\Hooks\NotificationSentListener;
+use Laravel\Nightwatch\Hooks\MailListener;
+use Laravel\Nightwatch\Hooks\NotificationListener;
 use Laravel\Nightwatch\Hooks\PreparingResponseListener;
 use Laravel\Nightwatch\Hooks\QueryExecutedListener;
+use Laravel\Nightwatch\Hooks\QueuedJobListener;
 use Laravel\Nightwatch\Hooks\RequestBootedHandler;
 use Laravel\Nightwatch\Hooks\RequestHandledListener;
 use Laravel\Nightwatch\Hooks\ResponsePreparedListener;
@@ -262,12 +265,17 @@ final class NightwatchServiceProvider extends ServiceProvider
         /**
          * @see \Laravel\Nightwatch\Records\QueuedJob
          */
-        $events->listen(JobQueued::class, (new JobQueuedListener($core))(...));
+        $events->listen([JobQueueing::class, JobQueued::class], (new QueuedJobListener($core))(...));
 
         /**
          * @see \Laravel\Nightwatch\Records\Notification
          */
-        $events->listen(NotificationSent::class, (new NotificationSentListener($core))(...));
+        $events->listen([NotificationSending::class, NotificationSent::class], (new NotificationListener($core))(...));
+
+        /**
+         * @see \Laravel\Nightwatch\Records\Mail
+         */
+        $events->listen([MessageSending::class, MessageSent::class], (new MailListener($core))(...));
 
         /**
          * @see \Laravel\Nightwatch\Records\OutgoingRequest
@@ -290,11 +298,6 @@ final class NightwatchServiceProvider extends ServiceProvider
             KeyForgotten::class,
             KeyForgetFailed::class,
         ], (new CacheEventListener($core))(...));
-
-        /**
-         * @see \Laravel\Nightwatch\Records\Mail
-         */
-        $events->listen(MessageSent::class, (new MessageSentListener($core))(...));
 
         //
         // -------------------------------------------------------------------------

@@ -9,10 +9,13 @@ use Illuminate\Console\Events\ScheduledTaskSkipped;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
+use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Queue\Events\JobAttempted;
 use Illuminate\Queue\Events\JobQueued;
+use Illuminate\Queue\Events\JobQueueing;
 use Laravel\Nightwatch\Sensors\CacheEventSensor;
 use Laravel\Nightwatch\Sensors\CommandSensor;
 use Laravel\Nightwatch\Sensors\ExceptionSensor;
@@ -128,7 +131,7 @@ class SensorManager
         $sensor($event);
     }
 
-    public function mail(MessageSent $event): void
+    public function mail(MessageSending|MessageSent $event): void
     {
         $sensor = $this->mailSensor ??= new MailSensor(
             executionState: $this->executionState,
@@ -138,7 +141,7 @@ class SensorManager
         $sensor($event);
     }
 
-    public function notification(NotificationSent $event): void
+    public function notification(NotificationSending|NotificationSent $event): void
     {
         $sensor = $this->notificationSensor ??= new NotificationSensor(
             executionState: $this->executionState,
@@ -177,7 +180,7 @@ class SensorManager
         $sensor($record);
     }
 
-    public function queuedJob(JobQueued $event): void
+    public function queuedJob(JobQueueing|JobQueued $event): void
     {
         $sensor = $this->queuedJobSensor ??= new QueuedJobSensor(
             executionState: $this->executionState,
