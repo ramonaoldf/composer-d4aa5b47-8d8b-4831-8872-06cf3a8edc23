@@ -27,7 +27,6 @@ use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Events\Terminating;
 use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Http\Client\Factory as Http;
-use Illuminate\Log\Context\Repository as ContextRepository;
 use Illuminate\Log\LogManager;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
@@ -35,6 +34,7 @@ use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Queue\Events\JobQueued;
 use Illuminate\Queue\Events\JobQueueing;
+use Illuminate\Queue\Queue;
 use Illuminate\Routing\Events\PreparingResponse;
 use Illuminate\Routing\Events\ResponsePrepared;
 use Illuminate\Routing\Events\RouteMatched;
@@ -70,7 +70,6 @@ use Throwable;
 
 use function app;
 use function call_user_func;
-use function class_exists;
 use function defined;
 use function is_string;
 use function microtime;
@@ -107,6 +106,7 @@ final class NightwatchServiceProvider extends ServiceProvider
     {
         try {
             $this->captureTimestamp();
+            Compatibility::boot($this->app);
             $this->captureExecutionType();
             $this->registerAndCaptureConfig();
             $this->registerBindings();
@@ -179,14 +179,17 @@ final class NightwatchServiceProvider extends ServiceProvider
     {
         $this->app->singleton(RouteMiddleware::class, fn () => new RouteMiddleware($this->core)); // @phpstan-ignore argument.type
 
-        if (! class_exists(Terminating::class)) {
-            $this->app->singleton(TerminatingMiddleware::class, fn () => new TerminatingMiddleware($this->core));
+        if (! Compatibility::$terminatingEventExists) {
+            $this->app->scoped(TerminatingMiddleware::class, fn () => new TerminatingMiddleware($this->core));
         }
     }
 
     private function registerAgentCommand(): void
     {
-        $this->app->singleton(AgentCommand::class, fn () => new AgentCommand($this->nightwatchConfig['token'] ?? null));
+        $this->app->singleton(AgentCommand::class, fn () => new AgentCommand(
+            token: $this->nightwatchConfig['token'] ?? null,
+            server: $this->nightwatchConfig['server'] ?? null,
+        ));
     }
 
     private function buildAndRegisterCore(): void
@@ -305,11 +308,12 @@ final class NightwatchServiceProvider extends ServiceProvider
         }
 
         /** @var Core<RequestState|CommandState> $core */
-
-        /**
-         * @see \Laravel\Nightwatch\ExecutionStage::Terminating
-         */
-        $events->listen(Terminating::class, (new TerminatingListener($core))(...));
+        if (Compatibility::$terminatingEventExists) {
+            /**
+             * @see \Laravel\Nightwatch\ExecutionStage::Terminating
+             */
+            $events->listen(Terminating::class, (new TerminatingListener($core))(...));
+        }
     }
 
     /**
@@ -403,9 +407,7 @@ final class NightwatchServiceProvider extends ServiceProvider
     {
         $trace = (string) Str::uuid();
 
-        /** @var ContextRepository */
-        $context = $this->app->make(ContextRepository::class);
-        $context->addHidden('nightwatch_trace_id', $trace);
+        Compatibility::addHiddenContext('nightwatch_trace_id', $trace);
 
         if ($this->isRequest) {
             /** @var AuthManager */
@@ -423,12 +425,8 @@ final class NightwatchServiceProvider extends ServiceProvider
         } else {
             return new CommandState(
                 timestamp: $this->timestamp,
-                trace: new LazyValue(function () {
-                    // Context needs to be re-resolved here to ensure
-                    // we are using the latest scoped instance.
-                    /** @var ContextRepository */
-                    $context = $this->app->make(ContextRepository::class);
-                    $trace = $context->getHidden('nightwatch_trace_id');
+                trace: new LazyValue(static function () {
+                    $trace = Compatibility::getHiddenContext('nightwatch_trace_id');
 
                     if (is_string($trace)) {
                         return $trace;
@@ -436,7 +434,7 @@ final class NightwatchServiceProvider extends ServiceProvider
 
                     $trace = (string) Str::uuid();
 
-                    $context->addHidden('nightwatch_trace_id', $trace);
+                    Compatibility::addHiddenContext('nightwatch_trace_id', $trace);
 
                     return $trace;
                 }),

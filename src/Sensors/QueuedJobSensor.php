@@ -6,6 +6,7 @@ use Illuminate\Events\CallQueuedListener;
 use Illuminate\Queue\Events\JobQueued;
 use Illuminate\Queue\Events\JobQueueing;
 use Laravel\Nightwatch\Clock;
+use Laravel\Nightwatch\Compatibility;
 use Laravel\Nightwatch\Concerns\NormalizesQueue;
 use Laravel\Nightwatch\Records\QueuedJob;
 use Laravel\Nightwatch\State\CommandState;
@@ -82,6 +83,19 @@ final class QueuedJobSensor
 
     private function resolveQueue(JobQueued $event): string
     {
+        if (! Compatibility::$queueNameCapturable) {
+            return '';
+        }
+
+        /**
+         * This property has not always had the correct type. It was missing,
+         * added, removed, and re-added through time. We will force the type
+         * here so we know what we are dealing with across all versions.
+         *
+         * @see https://github.com/laravel/framework/pull/55058
+         *
+         * @var string|null $queue
+         */
         $queue = $event->queue;
 
         if ($queue !== null) {
